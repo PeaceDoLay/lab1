@@ -4,6 +4,7 @@ import nltk
 import pandas as pd
 import numpy as np
 import matplotlib.ticker as ticker
+import re
 
 nltk.download('stopwords')
 # ...
@@ -20,7 +21,10 @@ from matplotlib import pyplot as plt
 # plt.show()
 ps = PorterStemmer()
 
-sms = pd.read_csv("sms-spam-corpus.csv", encoding="cp1251")
+print("Введите название файла:\n")
+path = str(input())
+sms = pd.read_csv(path, encoding="cp1251")
+
 ham = sms[sms.v1 == "ham"]
 spam = sms[sms.v1 == "spam"]
 
@@ -35,6 +39,7 @@ allHamWords = []
 hamWordsVoc = []
 hamAfterDeletingAndStemming = []
 hamLength = 0
+stopWords = stopwords.words('english')
 
 
 for i in range(len(initHam)):
@@ -44,7 +49,7 @@ for i in range(len(initHam)):
 
     words[0] = words[0][2:]
     words[len(words) - 1] = words[len(words) - 1][:-2]
-    filtered_words = [word for word in words if word not in stopwords.words('english')]
+    filtered_words = [word for word in words if word not in stopWords]
 
     hamAfterDeletingAndStemming.append(' '.join(filtered_words))
 
@@ -140,7 +145,7 @@ for i in range(len(initSpam)):
 
     words[0] = words[0][2:]
     words[len(words) - 1] = words[len(words) - 1][:-2]
-    filtered_words = [word for word in words if word not in stopwords.words('english')]
+    filtered_words = [word for word in words if word not in stopWords]
 
     spamAfterDeletingAndStemming.append(' '.join(filtered_words))
 
@@ -216,7 +221,6 @@ for n in spam20_2:
 
 
 spam3, axs3 = plt.subplots()
-
 xs3 = np.arange(20)
 axs3.bar(xs3, height=spam20_3)
 axs3.set_xlabel('Слова')
@@ -226,3 +230,46 @@ axs3.set_xticks(xs3)
 axs3.set_xticklabels(spam20_1)
 spam3.set_size_inches(25, 25)
 spam3.savefig('output/spam3.png', dpi=100)
+
+print("Введите сообщение для анализа:")
+inputMessage = str(input())
+inputMessage = re.sub(r'[^\w\s]+|[\d]+', r'', inputMessage).strip()
+
+inputMessageWords = inputMessage.split()
+allSpamWordsCountc = len(allSpamWords)
+allHamWordsCountc = len(allHamWords)
+
+filtered_words = [word for word in inputMessageWords if word not in stopWords]
+
+inputMessageWords = filtered_words
+
+isSpam = len(spam) / len(sms)
+for s in inputMessageWords:
+    if s not in spamWordsVoc:
+        allSpamWordsCountc += 1
+
+for s in inputMessageWords:
+    if s in spamWordsVoc:
+        i = spamWordsVoc.index(s)
+        isSpam *= spamCount[i] / allSpamWordsCountc
+    else:
+        isSpam *= (1 / allSpamWordsCountc)
+
+isHam = len(ham) / len(sms)
+for s in inputMessageWords:
+    if s not in hamWordsVoc:
+        allHamWordsCountc += 1
+
+for s in inputMessageWords:
+    if s in hamWordsVoc:
+        i = hamWordsVoc.index(s)
+        isHam *= hamCount[i] / allHamWordsCountc
+    else:
+        isHam *= 1 / allHamWordsCountc
+
+print("Вероятность, что сообщение - Spam:")
+print(isSpam)
+print("Вероятность, что сообщение - Ham:")
+print(isHam)
+
+print("Cкорее всего, что сообщение - Spam") if isSpam > isHam else print("Cкорее всего, что сообщение - Ham")
